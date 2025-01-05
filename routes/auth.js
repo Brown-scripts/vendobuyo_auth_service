@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
-router.post('/profile', profile);
+router.get('/profile', profile);
 router.post('/validate-token', validateToken); // Optional for token validation
 
 module.exports = router;
