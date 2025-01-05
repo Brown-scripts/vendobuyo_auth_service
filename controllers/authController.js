@@ -56,3 +56,36 @@ exports.validateToken = async (req, res) => {
     res.status(401).json({ valid: false, message: 'Invalid or expired token' });
   }
 };
+
+exports.profile = async (req, res) => {
+  try {
+    // Get token from headers
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+
+    // Find user by ID
+    const user = await User.findById(decoded.userId).select('-password'); // Exclude password from response
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return user profile
+    res.status(200).json({
+      email: user.email,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ message: 'Error fetching user profile' });
+  }
+};
