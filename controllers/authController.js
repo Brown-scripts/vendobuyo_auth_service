@@ -6,16 +6,16 @@ const { sendEmail } = require('../utils/emailSender');
 
 exports.register = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { phone, name, email, password, role } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
-    const user = new User({ email, password, role });
+    const user = new User({ email, password, role, phone, name });
     await user.save();
     // Send welcome email
     const subject = 'Welcome to Multivendor';
-    const body = `<p>Hi,</p><p>Thank you for signing up!</p>`;
+    const body = `<p>Hi, ${name}</p><p>Thank you for signing up!</p>`;
     await sendEmail(email, subject, body);
 
     res.status(201).json({ message: 'User created successfully' });
@@ -24,27 +24,64 @@ exports.register = async (req, res) => {
   }
 };
 
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting users' });
+  }
+};
+
+exports.getBuyers = async (req, res) => {
+  try {
+    const users = await User.find({ role: "buyer" });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting buyers' });
+  }
+};
+
+exports.getSellers = async (req, res) => {
+  try {
+    const users = await User.find({ role: "seller" });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting sellers' });
+  }
+};
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password'); // Exclude password from response
+
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate an access token only (no refresh token)
+    // Generate an access token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' } // Short-lived token
     );
 
-    res.json({ token });
+    res.json({
+      token,
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Error logging in' });
   }
 };
+
 
 // Add this function if you need token validation
 exports.validateToken = async (req, res) => {
@@ -82,6 +119,8 @@ exports.profile = async (req, res) => {
     // Return user profile
     res.status(200).json({
       email: user.email,
+      name: user.name,
+      phone: user.phone,
       role: user.role,
     });
   } catch (error) {
