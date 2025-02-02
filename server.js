@@ -1,12 +1,11 @@
+const dotenv = require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const { errorHandler } = require('./middleware/errorHandler');
 const cors = require('cors');
 
 
-dotenv.config();
 
 const app = express();
 app.use(cors());
